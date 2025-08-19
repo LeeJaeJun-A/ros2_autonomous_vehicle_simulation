@@ -1152,7 +1152,7 @@
     <joint name='front_left_combined_joint' type='universal'>
       <parent>chassis</parent>
       <child>front_left_wheel</child>  <!-- fl_axle -->
-      <pose>0 0 0 -0.087266 0 0</pose>
+      <pose>0 0 0 0 0 0</pose>
       <axis>
         <xyz>0 0 1</xyz>
         <limit>
@@ -1163,10 +1163,9 @@
           <velocity>-1</velocity> <!-- 1 회전 속도 제한 -->
         </limit>
         <dynamics>
-          <spring_reference>0</spring_reference>
-          <spring_stiffness>0</spring_stiffness>
-          <damping>0</damping> <!-- 0.7 후진 시 더 높은 댐핑 -->
-          <friction>0</friction> <!-- 15.0 후진 시 더 높은 마찰 -->
+          
+          <damping>5</damping> <!-- 0.7 후진 시 더 높은 댐핑 -->
+          <friction>0.2</friction> <!-- 15.0 후진 시 더 높은 마찰 -->
         </dynamics>
       </axis>
       <axis2>
@@ -1180,28 +1179,29 @@
         <dynamics>
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
-          <damping>0</damping> <!-- 0.7 후진 시 더 높은 댐핑 -->
-          <friction>18.0474</friction>
+          <damping>5</damping> <!-- 0.7 후진 시 더 높은 댐핑 -->
+          <friction>8.0</friction>
         </dynamics>
       </axis2>
-      <physics>
+      <!--<physics>
         <ode>
           <limit>
             <cfm>0</cfm>
-            <erp>0.2</erp> <!-- 0.9 후진 시 반응 조정 -->
+            <erp>0.2</erp> 
           </limit>
           <suspension>
-            <cfm>0</cfm>  <!-- 0.02 서스펜션에 대한 물리적 반응 -->
-            <erp>0.2</erp>  <!-- 0.9 서스펜션 반응을 후진에 맞게 조정 -->
+            <cfm>0</cfm>  
+            <erp>0.2</erp> 
           </suspension>
         </ode>
       </physics>
+      -->
     </joint>
 
     <joint name='front_right_combined_joint' type='universal'> 
       <parent>chassis</parent>
       <child>front_right_wheel</child>  <!-- fr_axle -->
-      <pose>0 0 0 -0.087266 0 0</pose>
+      <pose>0 0 0 0 0 0</pose>
       <axis>
         <xyz>0 0 1</xyz>
         <!-- <xyz>1 0 0</xyz> -->
@@ -1213,10 +1213,9 @@
           <velocity>-1</velocity>
         </limit>
         <dynamics>
-          <spring_reference>0</spring_reference>
-          <spring_stiffness>0</spring_stiffness>
-          <damping>0</damping>
-          <friction>0</friction>
+         
+          <damping>5</damping>
+          <friction>0.2</friction>
         </dynamics>
       </axis>
       <axis2>
@@ -1228,12 +1227,12 @@
           <velocity>-1</velocity>
         </limit>
         <dynamics>
-          <spring_reference>0</spring_reference>
-          <spring_stiffness>0</spring_stiffness>
-          <damping>0</damping>
-          <friction>18.0474</friction>
+          
+          <damping>5</damping>
+          <friction>8.0</friction>
         </dynamics>
       </axis2>
+      <!--
       <physics>
         <ode>
           <limit>
@@ -1246,6 +1245,7 @@
           </suspension>
         </ode>
       </physics>
+      -->
     </joint>
 
     <!--  -->
@@ -1534,6 +1534,7 @@
       </physics>
     </joint>
 
+    <!--rear camera-->
     <link name='rear_camera_frame'>
       <inertial>
         <inertia>
@@ -1547,7 +1548,7 @@
         <pose>0 0 0 0 -0 0</pose>
         <mass>1</mass>
       </inertial>
-      <pose>-0.000331 0.570777 1.96618 6e-06 0.304758 1.57112</pose>
+      <pose>-0.000331 2.3 1.06618 6e-06 0 1.57112</pose>
       <sensor name='rear_camera' type='camera'>
         <always_on>1</always_on>
         <visualize>1</visualize>
@@ -1829,8 +1830,11 @@
         </ode>
       </physics>
     </joint>    
-
-
+     
+    <joint name="sensor_joint" type="fixed">
+      <parent>chassis</parent>
+      <child>sensors</child>
+    </joint>
 
     <plugin name='simulation_pruis_hybrid_drive' filename='libgazebo_ros_ackermann_drive.so'>
       <chassis>chassis</chassis> 
