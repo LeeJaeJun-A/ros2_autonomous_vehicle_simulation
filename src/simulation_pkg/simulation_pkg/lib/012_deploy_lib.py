@@ -87,6 +87,19 @@ def load_model(entity_name, model_name, random_coordinates):
     model_file = get_model(model_name)
     os.system(f"ros2 run gazebo_ros spawn_entity.py -file {model_file} -entity {entity_name} -x {x} -y {y} -z {z} -R {roll} -P {pitch} -Y {yaw}")
 
+def parking_ego():  
+    
+    random_x = 1.008683
+    random_y = 16.062854
+    
+    z = 0.011641
+
+    r = -0.0
+    p = 0.0
+    y = 0.000544
+
+    return random_x, random_y, z, r, p, y
+
 def driving_ego():  
     x_min = -2.568994
     x_max = -2.526850
@@ -167,7 +180,7 @@ parking_start = [(-1.672862, -16.311572, 0.011641, -0.000000, 0.00, -3.133789),
                  (-0.764668, -16.302988, 0.011641, -0.000000, 0.00, -3.133797),
                 ]
 
-parking_ego = random.choice(parking_start)
+#parking_ego = random.choice(parking_start)
 
 
 # 주차 칸의 범위를 정의 (x_min, x_max, y_min, y_max, z_min, z_max, yaw_min, yaw_max)

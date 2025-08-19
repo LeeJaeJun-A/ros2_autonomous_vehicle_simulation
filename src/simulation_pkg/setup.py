@@ -32,6 +32,7 @@ setup(
                 
         # 시뮬레이션 세팅
         'load_ego_car_node = simulation_pkg.lib.load_ego_car_node:main',
+        'load_ego_car_parking_node = simulation_pkg.lib.load_ego_car_parking_node:main',
         'load_obstable_car_node = simulation_pkg.lib.load_obstable_car_node:main',
         'load_traffic_light_node = simulation_pkg.lib.load_traffic_light_node:main',
         'load_parking_car_node = simulation_pkg.lib.load_parking_car_node:main',
