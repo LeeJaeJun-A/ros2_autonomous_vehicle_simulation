@@ -57,3 +57,9 @@ sudo killall -9 gazebo gzserver gzclient; ros2 launch simulation_pkg driving_sim
 cd ~/ros2_autonomous_vehicle_simulation
 sudo killall -9 gazebo gzserver gzclient; ros2 launch simulation_pkg mission_sim.launch.py
 ```
+
+### 주차 환경
+```
+cd ~/ros2_autonomous_vehicle_simulation
+sudo killall -9 gazebo gzserver gzclient; ros2 launch simulation_pkg parking_sim.launch.py
+```
