@@ -78,7 +78,8 @@ CAMERA_STEERING_GAIN = 0.02      # Camera 오프셋 -> 조향 변환 게인
 PARKING_START_TIME = 25.0            # ⏰ 주차 시작 시간 (초) - 직진 후 이 시간에 좌회전 시작 (4배 연장)
 LEFT_TURN_DURATION = 4.4             # 좌회전 지속 시간 (초)
 REVERSING_DURATION = 10.0             # ⏱️ 후진 지속 시간 (초) - 주차 깊이 조절 (줄여서 덜 깊게)
-FINE_TUNING_DURATION = 1.0           # 미세 조정 시간 (초) - 후진 추가 미세 조정 (줄임)
+FINE_TUNING_DURATION = 3.0           # 미세 조정 시간 (초) - 전진하며 각도 보정
+FINE_TUNING_SPEED = 40               # 미세 조정 전진 속도 (느린 전진)
 
 # 주차 완료 후 정지 유지 (탈출 로직 제거)
 #----------------------------------------------
@@ -409,7 +410,7 @@ class ParkingMotionPlanner(Node):
         상태 4: 미세 조정 (Camera 기반, 실패 시 LiDAR 폴백)
         - 차선 lateral offset을 사용하여 정확한 위치 조정
         - Camera 타임아웃 시 LiDAR 데이터로 폴백
-        - 천천히 후진하며 조향
+        - 천천히 전진하며 조향 (후진 후 반대 방향으로 각도 보정)
         - 고정 시간 후 주차 완료
         """
         elapsed = now - self.fine_tuning_start_time
@@ -423,9 +424,9 @@ class ParkingMotionPlanner(Node):
             camera_available = False
             self.get_logger().warn("Camera timeout (>1s), using LiDAR fallback")
 
-        # 느린 속도로 후진
-        self.left_speed_command = REVERSE_SPEED / 2
-        self.right_speed_command = REVERSE_SPEED / 2
+        # 느린 속도로 전진 (후진 후 반대 방향으로 각도 보정)
+        self.left_speed_command = FINE_TUNING_SPEED
+        self.right_speed_command = FINE_TUNING_SPEED
 
         # === Camera 기반 조향 (우선순위 1) ===
         if camera_available:
