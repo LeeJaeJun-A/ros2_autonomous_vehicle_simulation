@@ -22,6 +22,7 @@ setup(
         'console_scripts': [
             'motion_planner_node = decision_making_pkg.motion_planner_node:main',
             'path_planner_node = decision_making_pkg.path_planner_node:main',
+            'motion_planner_node_parking = decision_making_pkg.motion_planner_node_parking:main',
         ],
     },
 )

@@ -1,0 +1,25 @@
+[1.777s] Invoking command in '/home/luke/automobile_capstone/src/build/decision_making_pkg': PYTHONPATH=/home/luke/automobile_capstone/src/build/decision_making_pkg/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/luke/automobile_capstone/src/install/decision_making_pkg/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/luke/automobile_capstone/src/build/decision_making_pkg/build --no-deps symlink_data
+[2.005s] running develop
+[2.149s] running egg_info
+[2.149s] creating decision_making_pkg.egg-info
+[2.149s] writing decision_making_pkg.egg-info/PKG-INFO
+[2.150s] writing dependency_links to decision_making_pkg.egg-info/dependency_links.txt
+[2.150s] writing entry points to decision_making_pkg.egg-info/entry_points.txt
+[2.150s] writing requirements to decision_making_pkg.egg-info/requires.txt
+[2.150s] writing top-level names to decision_making_pkg.egg-info/top_level.txt
+[2.151s] writing manifest file 'decision_making_pkg.egg-info/SOURCES.txt'
+[2.152s] reading manifest file 'decision_making_pkg.egg-info/SOURCES.txt'
+[2.153s] writing manifest file 'decision_making_pkg.egg-info/SOURCES.txt'
+[2.155s] running build_ext
+[2.155s] Creating /home/luke/automobile_capstone/src/install/decision_making_pkg/lib/python3.10/site-packages/decision-making-pkg.egg-link (link to .)
+[2.156s] Installing motion_planner_node script to /home/luke/automobile_capstone/src/install/decision_making_pkg/lib/decision_making_pkg
+[2.156s] Installing path_planner_node script to /home/luke/automobile_capstone/src/install/decision_making_pkg/lib/decision_making_pkg
+[2.156s] 
+[2.156s] Installed /home/luke/automobile_capstone/src/build/decision_making_pkg
+[2.156s] running symlink_data
+[2.156s] creating /home/luke/automobile_capstone/src/install/decision_making_pkg/share/ament_index
+[2.157s] creating /home/luke/automobile_capstone/src/install/decision_making_pkg/share/ament_index/resource_index
+[2.157s] creating /home/luke/automobile_capstone/src/install/decision_making_pkg/share/ament_index/resource_index/packages
+[2.157s] symbolically linking /home/luke/automobile_capstone/src/build/decision_making_pkg/resource/decision_making_pkg -> /home/luke/automobile_capstone/src/install/decision_making_pkg/share/ament_index/resource_index/packages
+[2.157s] symbolically linking /home/luke/automobile_capstone/src/build/decision_making_pkg/package.xml -> /home/luke/automobile_capstone/src/install/decision_making_pkg/share/decision_making_pkg
+[2.229s] Invoked command in '/home/luke/automobile_capstone/src/build/decision_making_pkg' returned '0': PYTHONPATH=/home/luke/automobile_capstone/src/build/decision_making_pkg/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/luke/automobile_capstone/src/install/decision_making_pkg/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/luke/automobile_capstone/src/build/decision_making_pkg/build --no-deps symlink_data

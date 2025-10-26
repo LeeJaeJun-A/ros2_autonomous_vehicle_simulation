@@ -1,0 +1,16 @@
+/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_adapter/interfaces_pkg:msg/Point2D.idl
+/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_adapter/interfaces_pkg:msg/Vector2.idl
+/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_adapter/interfaces_pkg:msg/Pose2D.idl
+/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_adapter/interfaces_pkg:msg/BoundingBox2D.idl
+/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_adapter/interfaces_pkg:msg/BoundingBox3D.idl
+/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_adapter/interfaces_pkg:msg/Mask.idl
+/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_adapter/interfaces_pkg:msg/KeyPoint2D.idl
+/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_adapter/interfaces_pkg:msg/KeyPoint2DArray.idl
+/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_adapter/interfaces_pkg:msg/KeyPoint3D.idl
+/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_adapter/interfaces_pkg:msg/KeyPoint3DArray.idl
+/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_adapter/interfaces_pkg:msg/Detection.idl
+/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_adapter/interfaces_pkg:msg/DetectionArray.idl
+/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_adapter/interfaces_pkg:msg/LaneInfo.idl
+/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_adapter/interfaces_pkg:msg/MotionCommand.idl
+/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_adapter/interfaces_pkg:msg/TargetPoint.idl
+/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_adapter/interfaces_pkg:msg/PathPlanningResult.idl

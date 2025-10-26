@@ -1,0 +1,1 @@
+/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_typesupport_fastrtps_cpp/interfaces_pkg/msg/detail/bounding_box2_d__rosidl_typesupport_fastrtps_cpp.hpp

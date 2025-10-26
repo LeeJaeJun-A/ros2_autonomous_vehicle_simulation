@@ -1,0 +1,1 @@
+/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_generator_c/interfaces_pkg/msg/detail/mask__type_support.h

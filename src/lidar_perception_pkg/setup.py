@@ -23,7 +23,7 @@ setup(
             'lidar_publisher_node = lidar_perception_pkg.lidar_publisher_node:main',
 			'lidar_processor_node = lidar_perception_pkg.lidar_processor_node:main',
 			'lidar_obstacle_detector_node = lidar_perception_pkg.lidar_obstacle_detector_node:main',
-			
+			'lidar_obstacle_detector_node_parking = lidar_perception_pkg.lidar_obstacle_detector_node_parking:main',
         ],
     },
 )
