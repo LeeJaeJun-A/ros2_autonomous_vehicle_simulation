@@ -123,12 +123,13 @@ class ParkingMotionPlanner(Node):
         self.reversing_start_time = None
         self.fine_tuning_start_time = None
         self.parked_start_time = None
-        self.exit_forward_start_time = None
-        self.exit_turn_start_time = None
-        self.exit_straight_start_time = None
 
         # Camera 타임아웃 추적
         self.last_camera_update_time = None
+
+        # 시스템 준비 확인
+        self.system_ready = False
+        self.first_lidar_received = False
 
         # ===== 구독자 설정 =====
         # LiDAR 구독자
@@ -208,6 +209,11 @@ class ParkingMotionPlanner(Node):
         """LiDAR 원시 데이터 수신"""
         self.lidar_data = msg
 
+        # 첫 LiDAR 데이터 수신 시 시스템 준비 완료로 판단
+        if not self.first_lidar_received:
+            self.first_lidar_received = True
+            self.get_logger().info("✅ First LiDAR data received! System ready.")
+
     def obstacle_info_callback(self, msg: Bool):
         """오른쪽 장애물 감지 정보 수신 (시간 기반 모드에서는 무시)"""
         # 시간 기반 모드에서는 장애물 감지를 사용하지 않음
@@ -284,11 +290,21 @@ class ParkingMotionPlanner(Node):
     def state_initial_forward(self, now):
         """
         상태 1: 초기 직진
-        - 오른쪽 장애물(주차된 차량) 감지 대기
-        - 일정 시간 후 감지 시작
+        - LiDAR 데이터 수신 대기 후 타이머 시작
+        - 특정 시간 후 주차 시작
         """
+        # LiDAR 데이터를 받기 시작할 때까지 대기
+        if not self.first_lidar_received:
+            self.steering_command = 0.0
+            self.left_speed_command = FORWARD_SPEED_INIT
+            self.right_speed_command = FORWARD_SPEED_INIT
+            self.get_logger().info("Waiting for LiDAR data...", throttle_duration_sec=2.0)
+            return
+
+        # LiDAR 수신 후 타이머 시작
         if self.initial_forward_start_time is None:
             self.initial_forward_start_time = now
+            self.get_logger().warn(f"🚀 System ready! Starting timer. Parking will begin in {PARKING_START_TIME}s")
 
         self.steering_command = 0.0
         self.left_speed_command = FORWARD_SPEED_INIT
@@ -468,7 +484,7 @@ class ParkingMotionPlanner(Node):
         self.steering_command = 0.0
         self.left_speed_command = STOP_SPEED
         self.right_speed_command = STOP_SPEED
-        
+
         # 주차 완료 후 계속 정지 (탈출 로직 제거)
 
     def state_exit_forward(self, now):
