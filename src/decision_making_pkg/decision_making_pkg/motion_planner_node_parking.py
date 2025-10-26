@@ -75,7 +75,7 @@ CAMERA_STEERING_GAIN = 0.02      # Camera 오프셋 -> 조향 변환 게인
 #--------------- Parking Sequence Timing (시간 기반 주차) ---------------
 # 💡 주차 위치를 맞추려면 아래 시간들을 조정하세요!
 
-PARKING_START_TIME = 6.0             # ⏰ 주차 시작 시간 (초) - 직진 후 이 시간에 좌회전 시작
+PARKING_START_TIME = 15.0            # ⏰ 주차 시작 시간 (초) - 직진 후 이 시간에 좌회전 시작
 LEFT_TURN_DURATION = 4.4             # 좌회전 지속 시간 (초)
 REVERSING_DURATION = 10.0            # ⏱️ 후진 지속 시간 (초) - 주차 깊이 조절 (길게하면 깊게 들어감)
 FINE_TUNING_DURATION = 2.0           # 미세 조정 시간 (초) - 후진 추가 미세 조정
