@@ -75,17 +75,12 @@ CAMERA_STEERING_GAIN = 0.02      # Camera 오프셋 -> 조향 변환 게인
 #--------------- Parking Sequence Timing (시간 기반 주차) ---------------
 # 💡 주차 위치를 맞추려면 아래 시간들을 조정하세요!
 
-INITIAL_FORWARD_MIN_DURATION = 3.0   # 초기 직진 최소 시간 (무시됨, PARKING_START_TIME 사용)
-PARKING_START_TIME = 6.0             # ⏰ 주차 시작 시간 (초) - 이 시간 후 좌회전 시작
+PARKING_START_TIME = 6.0             # ⏰ 주차 시작 시간 (초) - 직진 후 이 시간에 좌회전 시작
 LEFT_TURN_DURATION = 4.4             # 좌회전 지속 시간 (초)
 REVERSING_DURATION = 10.0            # ⏱️ 후진 지속 시간 (초) - 주차 깊이 조절 (길게하면 깊게 들어감)
 FINE_TUNING_DURATION = 2.0           # 미세 조정 시간 (초) - 후진 추가 미세 조정
-PARKED_WAIT_DURATION = 3.0           # 주차 완료 후 대기 시간 (초)
 
-#--------------- Exit Sequence Parameters ---------------
-EXIT_FORWARD_SPEED = 200             # 탈출 전진 속도
-EXIT_FORWARD_DURATION = 1.0          # 탈출 전진 시간 (초)
-EXIT_STRAIGHT_DURATION = 5.0         # 탈출 후 직진 시간 (초)
+# 주차 완료 후 정지 유지 (탈출 로직 제거)
 #----------------------------------------------
 
 
@@ -279,12 +274,7 @@ class ParkingMotionPlanner(Node):
             self.state_fine_tuning(now)
         elif self.parking_state == 'parked':
             self.state_parked(now)
-        elif self.parking_state == 'exit_forward':
-            self.state_exit_forward(now)
-        elif self.parking_state == 'exit_turn':
-            self.state_exit_turn(now)
-        elif self.parking_state == 'exit_straight':
-            self.state_exit_straight(now)
+        # 탈출 로직 제거 - 주차 완료 후 정지 유지
 
         # 모션 명령 메시지 발행
         self.publish_motion_command()
@@ -473,19 +463,13 @@ class ParkingMotionPlanner(Node):
     def state_parked(self, now):
         """
         상태 5: 주차 완료
-        - 정지 상태 유지
-        - 일정 시간 후 탈출 시퀀스 시작
+        - 정지 상태 유지 (탈출 안 함)
         """
-        elapsed = now - self.parked_start_time
-
         self.steering_command = 0.0
         self.left_speed_command = STOP_SPEED
         self.right_speed_command = STOP_SPEED
-
-        if elapsed >= PARKED_WAIT_DURATION:
-            self.get_logger().info("Starting exit sequence - moving forward")
-            self.parking_state = 'exit_forward'
-            self.exit_forward_start_time = now
+        
+        # 주차 완료 후 계속 정지 (탈출 로직 제거)
 
     def state_exit_forward(self, now):
         """
