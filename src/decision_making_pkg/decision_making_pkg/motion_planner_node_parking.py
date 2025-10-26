@@ -74,7 +74,7 @@ CAMERA_STEERING_GAIN = 0.02      # Camera 오프셋 -> 조향 변환 게인
 REAR_WALL_SAFE_DISTANCE = 0.6    # 후방 벽 안전 거리 (m) - 이 거리보다 가까우면 멈춤
 
 #--------------- Parking Sequence Timing ---------------
-INITIAL_FORWARD_MIN_DURATION = 2.0   # 초기 직진 최소 시간 (장애물 감지 대기)
+INITIAL_FORWARD_MIN_DURATION = 3.0   # 초기 직진 최소 시간 (장애물 감지 대기)
 REVERSING_DURATION = 12.0            # 후진 지속 시간 (초)
 FINE_TUNING_DURATION = 3.0           # 미세 조정 시간 (초)
 PARKED_WAIT_DURATION = 3.0           # 주차 완료 후 대기 시간 (초)
@@ -307,18 +307,26 @@ class ParkingMotionPlanner(Node):
         # 초기 대기 시간 이후 장애물 감지 반응
         elapsed = now - self.initial_forward_start_time
 
-        # 주기적 상태 로그 (1초마다)
+        # 주기적 상태 로그 (2초마다)
         if int(elapsed) % 2 == 0 and elapsed - int(elapsed) < 0.1:
             self.get_logger().info(
                 f"[initial_forward] Elapsed: {elapsed:.1f}s, "
                 f"Right obstacle: {self.right_obstacle_detected}"
             )
 
+        # 최소 직진 시간 경과 후에만 장애물 감지 반응
         if elapsed >= INITIAL_FORWARD_MIN_DURATION:
             if self.right_obstacle_detected:
-                self.get_logger().info("Right obstacle detected! Starting left turn.")
+                self.get_logger().warn(f"✓ Right obstacle detected after {elapsed:.1f}s! Starting left turn.")
                 self.parking_state = 'turning_left'
                 self.left_turn_start_time = now
+                # 각도 수집 초기화
+                self.received_start_angles = []
+                self.received_end_angles = []
+        else:
+            # 최소 시간 이전에는 장애물 감지 무시
+            if self.right_obstacle_detected:
+                self.get_logger().debug(f"Ignoring early detection (elapsed={elapsed:.1f}s < {INITIAL_FORWARD_MIN_DURATION}s)")
 
     def state_turning_left(self, now):
         """
