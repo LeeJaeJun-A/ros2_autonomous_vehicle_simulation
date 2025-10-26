@@ -26,13 +26,14 @@ SUB_TOPIC_NAME = 'lidar_processed'  # 구독할 LiDAR 토픽 이름
 PUB_OBSTACLE_INFO_TOPIC_NAME = 'lidar_obstacle_info'  # 장애물 유무 발행 토픽
 PUB_START_ANGLE_TOPIC_NAME = 'obstacle_start_angle'  # 장애물 시작 각도 토픽
 PUB_END_ANGLE_TOPIC_NAME = 'obstacle_end_angle'  # 장애물 끝 각도 토픽
+PUB_REAR_DISTANCE_TOPIC_NAME = 'rear_wall_distance'  # 후방 벽 거리 토픽
 
-# 오른쪽 장애물 감지 파라미터 (전체 범위로 확장)
-RIGHT_DETECTION_START_ANGLE = 0.0    # 오른쪽 감지 시작 각도 (전체)
-RIGHT_DETECTION_END_ANGLE = 360.0    # 오른쪽 감지 끝 각도 (전체)
-RIGHT_DETECTION_RANGE_MIN = 0.3      # 오른쪽 감지 최소 거리 (m)
-RIGHT_DETECTION_RANGE_MAX = 4.0      # 오른쪽 감지 최대 거리 (m)
-CONSECUTIVE_DETECTION_COUNT = 2      # 안정적 감지를 위한 연속 감지 횟수
+# 오른쪽 장애물 감지 파라미터 (측면 주차 차량 감지용)
+RIGHT_DETECTION_START_ANGLE = 60.0   # 오른쪽 감지 시작 각도 (우측면)
+RIGHT_DETECTION_END_ANGLE = 120.0    # 오른쪽 감지 끝 각도 (우측면)
+RIGHT_DETECTION_RANGE_MIN = 0.8      # 오른쪽 감지 최소 거리 (m) - 너무 가까우면 무시
+RIGHT_DETECTION_RANGE_MAX = 2.5      # 오른쪽 감지 최대 거리 (m) - 주차 차량 거리
+CONSECUTIVE_DETECTION_COUNT = 5      # 안정적 감지를 위한 연속 감지 횟수 (증가)
 
 # 후방 장애물 각도 감지 파라미터
 REAR_START_ANGLE = 0.0        # 후방 감지 시작 각도 (파라미터로 설정 가능)
@@ -86,6 +87,11 @@ class ParkingObstacleDetector(Node):
             PUB_END_ANGLE_TOPIC_NAME,
             self.qos_profile
         )
+        self.rear_distance_publisher = self.create_publisher(
+            Float32,
+            PUB_REAR_DISTANCE_TOPIC_NAME,
+            self.qos_profile
+        )
 
         # 안정적 감지를 위한 StabilityDetector 초기화
         self.detection_checker = LPFL.StabilityDetector(
@@ -129,6 +135,9 @@ class ParkingObstacleDetector(Node):
         # ===== 2. 후방 장애물 각도 감지 (Float32 메시지 발행) =====
         self.detect_rear_obstacle_angles(valid_indices, ranges, angle_min, angle_increment)
 
+        # ===== 3. 후방 벽 거리 측정 및 발행 (주차 멈춤용) =====
+        self.detect_rear_wall_distance(ranges, angle_min, angle_increment)
+
     def detect_right_obstacle(self, valid_indices, ranges, angle_min, angle_increment):
         """
         전체 영역(0~360도)에서 주차된 차량 같은 장애물을 감지하여 Bool 메시지로 발행
@@ -150,8 +159,8 @@ class ParkingObstacleDetector(Node):
                 RIGHT_DETECTION_RANGE_MIN <= distance <= RIGHT_DETECTION_RANGE_MAX):
                 right_obstacles.append((angle_deg, distance))
 
-        # 장애물 포인트 개수로 판단 (5개 이상 200개 이하면 주차된 차량으로 간주)
-        if 5 <= len(right_obstacles) <= 200:
+        # 장애물 포인트 개수로 판단 (10개 이상 50개 이하면 주차된 차량으로 간주)
+        if 10 <= len(right_obstacles) <= 50:
             right_detected = True
 
         # 디버깅 로그 (오른쪽 영역에서 발견된 장애물)
@@ -284,6 +293,37 @@ class ParkingObstacleDetector(Node):
 
         merged_segments.append((current_start, current_end))
         return merged_segments
+
+    def detect_rear_wall_distance(self, ranges, angle_min, angle_increment):
+        """
+        후방(180도) 벽까지의 거리를 측정하여 발행
+        주차 중 후진 멈춤 판단용
+        """
+        # 180도 방향 (정후방) 주변 각도들의 평균 거리 계산
+        rear_angles = [175, 177, 179, 180, 181, 183, 185]  # 180도 중심으로 ±5도
+        rear_distances = []
+
+        for angle_deg in rear_angles:
+            idx = int((np.radians(angle_deg) - angle_min) / angle_increment)
+            if 0 <= idx < len(ranges) and np.isfinite(ranges[idx]):
+                rear_distances.append(ranges[idx])
+
+        if rear_distances:
+            # 평균 거리 계산
+            avg_distance = np.mean(rear_distances)
+
+            # 거리 발행
+            distance_msg = Float32()
+            distance_msg.data = float(avg_distance)
+            self.rear_distance_publisher.publish(distance_msg)
+
+            # 디버깅 로그 (0.5초마다)
+            if not hasattr(self, '_rear_dist_counter'):
+                self._rear_dist_counter = 0
+            self._rear_dist_counter += 1
+
+            if self._rear_dist_counter % 5 == 0:
+                self.get_logger().debug(f"Rear wall distance: {avg_distance:.2f}m")
 
 
 def main(args=None):

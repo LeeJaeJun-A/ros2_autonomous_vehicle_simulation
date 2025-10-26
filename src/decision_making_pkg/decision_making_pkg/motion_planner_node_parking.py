@@ -36,6 +36,8 @@ SUB_OBSTACLE_START_ANGLE_TOPIC_NAME = "obstacle_start_angle"
 SUB_OBSTACLE_END_ANGLE_TOPIC_NAME = "obstacle_end_angle"
 SUB_LANE_INFO_TOPIC_NAME = "parking_lane_info"
 SUB_LATERAL_OFFSET_TOPIC_NAME = "parking_lateral_offset"
+SUB_REAR_WALL_DISTANCE_TOPIC_NAME = "rear_wall_distance"
+SUB_LANE_END_DETECTED_TOPIC_NAME = "parking_lane_end_detected"
 
 PUB_TOPIC_NAME = "topic_control_signal"
 
@@ -67,6 +69,9 @@ STEERING_ANGLE_THRESHOLD_LOW = 177.0   # 이 값보다 작으면 좌회전
 #--------------- Camera-based Fine Tuning Parameters ---------------
 LATERAL_OFFSET_THRESHOLD = 20.0  # 좌우 오프셋 임계값 (픽셀)
 CAMERA_STEERING_GAIN = 0.02      # Camera 오프셋 -> 조향 변환 게인
+
+#--------------- Safety Parameters ---------------
+REAR_WALL_SAFE_DISTANCE = 0.6    # 후방 벽 안전 거리 (m) - 이 거리보다 가까우면 멈춤
 
 #--------------- Parking Sequence Timing ---------------
 INITIAL_FORWARD_MIN_DURATION = 5.0   # 초기 직진 최소 시간 (장애물 감지 대기)
@@ -102,10 +107,12 @@ class ParkingMotionPlanner(Node):
         self.right_obstacle_detected = False
         self.received_start_angles = []
         self.received_end_angles = []
+        self.rear_wall_distance = float('inf')  # 후방 벽까지의 거리 (m)
 
         # Camera 관련
         self.lane_info = None
         self.lateral_offset = 0.0  # 좌우 오프셋 (픽셀)
+        self.lane_end_detected = False  # 주차선 끝 감지 여부
 
         # ===== 제어 명령 변수 =====
         self.steering_command = 0.0
@@ -169,6 +176,22 @@ class ParkingMotionPlanner(Node):
             self.qos_profile
         )
 
+        # 안전 거리 구독자
+        self.rear_distance_sub = self.create_subscription(
+            Float32,
+            SUB_REAR_WALL_DISTANCE_TOPIC_NAME,
+            self.rear_distance_callback,
+            self.qos_profile
+        )
+
+        # 주차선 끝 감지 구독자
+        self.lane_end_sub = self.create_subscription(
+            Bool,
+            SUB_LANE_END_DETECTED_TOPIC_NAME,
+            self.lane_end_callback,
+            self.qos_profile
+        )
+
         # ===== 발행자 설정 =====
         self.publisher = self.create_publisher(
             MotionCommand,
@@ -228,6 +251,16 @@ class ParkingMotionPlanner(Node):
         self.lateral_offset = msg.data
         # Camera 데이터 수신 시간 기록 (타임아웃 감지용)
         self.last_camera_update_time = self.get_clock().now().nanoseconds / 1e9
+
+    def rear_distance_callback(self, msg: Float32):
+        """후방 벽까지의 거리 수신"""
+        self.rear_wall_distance = msg.data
+
+    def lane_end_callback(self, msg: Bool):
+        """주차선 끝 감지 수신"""
+        self.lane_end_detected = msg.data
+        if msg.data:
+            self.get_logger().info(f"[STATE: {self.parking_state}] 🛑 Parking lane END detected by camera!")
 
     # ==================== 메인 타이머 콜백 ====================
 
@@ -314,8 +347,28 @@ class ParkingMotionPlanner(Node):
         상태 3: 후진 및 조향
         - LiDAR 후방 장애물 각도를 기반으로 조향
         - 주차 공간 중앙으로 정렬
+        - 후방 벽 거리 체크로 안전 정지
         """
         elapsed = now - self.reversing_start_time
+
+        # 1순위: Camera 주차선 끝 감지
+        if self.lane_end_detected:
+            self.get_logger().warn(
+                f"🅿️  Parking lane END detected! Switching to fine tuning for final adjustment."
+            )
+            self.parking_state = 'fine_tuning'
+            self.fine_tuning_start_time = now
+            return
+
+        # 2순위: 안전 거리 체크 - 후방 벽이 너무 가까우면 즉시 미세 조정으로 전환
+        if self.rear_wall_distance < REAR_WALL_SAFE_DISTANCE:
+            self.get_logger().warn(
+                f"⚠️  Rear wall too close! Distance: {self.rear_wall_distance:.2f}m "
+                f"< Safe: {REAR_WALL_SAFE_DISTANCE}m. Switching to fine tuning."
+            )
+            self.parking_state = 'fine_tuning'
+            self.fine_tuning_start_time = now
+            return
 
         self.left_speed_command = REVERSE_SPEED
         self.right_speed_command = REVERSE_SPEED
@@ -366,8 +419,34 @@ class ParkingMotionPlanner(Node):
         - 차선 lateral offset을 사용하여 정확한 위치 조정
         - Camera 타임아웃 시 LiDAR 데이터로 폴백
         - 천천히 후진하며 조향
+        - 후방 벽 안전 거리 체크
         """
         elapsed = now - self.fine_tuning_start_time
+
+        # 1순위: Camera 주차선 끝 감지 - 정확한 위치에 도달
+        if self.lane_end_detected:
+            self.get_logger().warn(
+                f"🅿️  Parking lane END reached! Perfect parking position. Parking completed!"
+            )
+            self.parking_state = 'parked'
+            self.parked_start_time = now
+            self.steering_command = 0.0
+            self.left_speed_command = STOP_SPEED
+            self.right_speed_command = STOP_SPEED
+            return
+
+        # 2순위: 안전 거리 체크 - 최소 안전 거리에 도달하면 즉시 주차 완료
+        if self.rear_wall_distance < REAR_WALL_SAFE_DISTANCE:
+            self.get_logger().warn(
+                f"🅿️  Reached safe distance! Distance: {self.rear_wall_distance:.2f}m. "
+                f"Parking completed!"
+            )
+            self.parking_state = 'parked'
+            self.parked_start_time = now
+            self.steering_command = 0.0
+            self.left_speed_command = STOP_SPEED
+            self.right_speed_command = STOP_SPEED
+            return
 
         # Camera 데이터 유효성 확인 (타임아웃 체크)
         camera_available = True

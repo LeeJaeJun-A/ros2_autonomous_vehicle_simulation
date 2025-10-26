@@ -34,6 +34,7 @@ SUB_PARKING_MODE_TOPIC_NAME = "parking_mode"  # 주차 모드 활성화 신호
 PUB_LANE_INFO_TOPIC_NAME = "parking_lane_info"
 PUB_ROI_IMAGE_TOPIC_NAME = "parking_roi_image"
 PUB_LATERAL_OFFSET_TOPIC_NAME = "parking_lateral_offset"  # 좌우 오프셋
+PUB_LANE_END_DETECTED_TOPIC_NAME = "parking_lane_end_detected"  # 주차선 끝 감지
 
 # 화면에 이미지를 처리하는 과정을 띄울것인지 여부
 SHOW_IMAGE = True
@@ -96,6 +97,11 @@ class ParkingLaneDetector(Node):
         self.lateral_offset_publisher = self.create_publisher(
             Float32,
             PUB_LATERAL_OFFSET_TOPIC_NAME,
+            self.qos_profile
+        )
+        self.lane_end_publisher = self.create_publisher(
+            Bool,
+            PUB_LANE_END_DETECTED_TOPIC_NAME,
             self.qos_profile
         )
 
@@ -202,6 +208,43 @@ class ParkingLaneDetector(Node):
                 f"Parking Lane - Slope: {grad:.2f}°, "
                 f"Lateral Offset: {avg_lateral_offset:.1f} px"
             )
+
+        # 주차선 끝 감지 (ROI 이미지 하단부 체크)
+        lane_end_detected = self.detect_lane_end(roi_image)
+        lane_end_msg = Bool()
+        lane_end_msg.data = lane_end_detected
+        self.lane_end_publisher.publish(lane_end_msg)
+
+        if lane_end_detected:
+            self.get_logger().warn("🛑 Parking lane END detected! Stop reversing!")
+
+    def detect_lane_end(self, roi_image):
+        """
+        ROI 이미지 하단부에서 주차선 끝을 감지
+        하단 20% 영역에 많은 흰색 픽셀이 있으면 주차선 끝으로 판단
+        """
+        h, w = roi_image.shape[0], roi_image.shape[1]
+
+        # 하단 20% 영역만 확인
+        bottom_region_start = int(h * 0.8)
+        bottom_region = roi_image[bottom_region_start:h, :]
+
+        # 흰색 픽셀 개수 세기 (임계값 200 이상)
+        white_pixels = np.sum(bottom_region > 200)
+        total_pixels = bottom_region.size
+
+        # 흰색 픽셀 비율 계산
+        white_ratio = white_pixels / total_pixels if total_pixels > 0 else 0
+
+        # 흰색 픽셀이 20% 이상이면 주차선 끝으로 판단
+        is_lane_end = white_ratio > 0.20
+
+        if is_lane_end:
+            self.get_logger().debug(
+                f"Lane end detection: white_ratio={white_ratio:.2%} > 20%"
+            )
+
+        return is_lane_end
 
 
 def main(args=None):
