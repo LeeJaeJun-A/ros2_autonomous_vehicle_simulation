@@ -159,8 +159,8 @@ class ParkingObstacleDetector(Node):
                 RIGHT_DETECTION_RANGE_MIN <= distance <= RIGHT_DETECTION_RANGE_MAX):
                 right_obstacles.append((angle_deg, distance))
 
-        # 장애물 포인트 개수로 판단 (10개 이상 50개 이하면 주차된 차량으로 간주)
-        if 10 <= len(right_obstacles) <= 50:
+        # 장애물 포인트 개수로 판단 (10개 이상 100개 이하면 주차된 차량으로 간주)
+        if 10 <= len(right_obstacles) <= 100:
             right_detected = True
 
         # 디버깅 로그 (오른쪽 영역에서 발견된 장애물)
