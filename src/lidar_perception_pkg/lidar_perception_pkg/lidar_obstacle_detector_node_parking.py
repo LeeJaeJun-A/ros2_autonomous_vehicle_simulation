@@ -27,12 +27,12 @@ PUB_OBSTACLE_INFO_TOPIC_NAME = 'lidar_obstacle_info'  # 장애물 유무 발행 
 PUB_START_ANGLE_TOPIC_NAME = 'obstacle_start_angle'  # 장애물 시작 각도 토픽
 PUB_END_ANGLE_TOPIC_NAME = 'obstacle_end_angle'  # 장애물 끝 각도 토픽
 
-# 오른쪽 장애물 감지 파라미터
-RIGHT_DETECTION_START_ANGLE = 230.0  # 오른쪽 감지 시작 각도
-RIGHT_DETECTION_END_ANGLE = 300.0    # 오른쪽 감지 끝 각도
-RIGHT_DETECTION_RANGE_MIN = 0.5      # 오른쪽 감지 최소 거리 (m)
-RIGHT_DETECTION_RANGE_MAX = 2.5      # 오른쪽 감지 최대 거리 (m)
-CONSECUTIVE_DETECTION_COUNT = 3      # 안정적 감지를 위한 연속 감지 횟수
+# 오른쪽 장애물 감지 파라미터 (전체 범위로 확장)
+RIGHT_DETECTION_START_ANGLE = 0.0    # 오른쪽 감지 시작 각도 (전체)
+RIGHT_DETECTION_END_ANGLE = 360.0    # 오른쪽 감지 끝 각도 (전체)
+RIGHT_DETECTION_RANGE_MIN = 0.3      # 오른쪽 감지 최소 거리 (m)
+RIGHT_DETECTION_RANGE_MAX = 4.0      # 오른쪽 감지 최대 거리 (m)
+CONSECUTIVE_DETECTION_COUNT = 2      # 안정적 감지를 위한 연속 감지 횟수
 
 # 후방 장애물 각도 감지 파라미터
 REAR_START_ANGLE = 0.0        # 후방 감지 시작 각도 (파라미터로 설정 가능)
@@ -112,13 +112,16 @@ class ParkingObstacleDetector(Node):
         self._debug_counter += 1
 
         if self._debug_counter % 20 == 0:  # 2초마다 (10Hz * 20)
-            angles_to_check = [0, 90, 180, 270]
+            # 더 많은 각도를 체크 (특히 오른쪽 영역)
+            angles_to_check = [0, 45, 90, 135, 180, 225, 270, 315]
             debug_info = []
             for check_angle in angles_to_check:
                 idx = int((np.radians(check_angle) - angle_min) / angle_increment)
                 if 0 <= idx < len(ranges) and np.isfinite(ranges[idx]):
                     debug_info.append(f"{check_angle}°:{ranges[idx]:.2f}m")
-            self.get_logger().info(f"LiDAR ranges - {', '.join(debug_info)}")
+                else:
+                    debug_info.append(f"{check_angle}°:inf")
+            self.get_logger().info(f"LiDAR 360° scan - {', '.join(debug_info)}")
 
         # ===== 1. 오른쪽 장애물 감지 (Bool 메시지 발행) =====
         self.detect_right_obstacle(valid_indices, ranges, angle_min, angle_increment)
@@ -128,26 +131,36 @@ class ParkingObstacleDetector(Node):
 
     def detect_right_obstacle(self, valid_indices, ranges, angle_min, angle_increment):
         """
-        오른쪽 영역(230~300도)의 장애물을 감지하여 Bool 메시지로 발행
+        전체 영역(0~360도)에서 주차된 차량 같은 장애물을 감지하여 Bool 메시지로 발행
         """
         right_detected = False
         right_obstacles = []  # 디버깅용
+
+        # 디버깅 카운터 (너무 많은 로그 방지)
+        if not hasattr(self, '_right_debug_counter'):
+            self._right_debug_counter = 0
+        self._right_debug_counter += 1
 
         for index in valid_indices:
             angle_deg = np.degrees(angle_min + index * angle_increment)
             distance = ranges[index]
 
-            # 오른쪽 감지 영역 체크
+            # 전체 영역에서 특정 거리 범위의 장애물 감지
             if (RIGHT_DETECTION_START_ANGLE <= angle_deg <= RIGHT_DETECTION_END_ANGLE and
                 RIGHT_DETECTION_RANGE_MIN <= distance <= RIGHT_DETECTION_RANGE_MAX):
-                right_detected = True
                 right_obstacles.append((angle_deg, distance))
 
+        # 장애물 포인트 개수로 판단 (5개 이상 200개 이하면 주차된 차량으로 간주)
+        if 5 <= len(right_obstacles) <= 200:
+            right_detected = True
+
         # 디버깅 로그 (오른쪽 영역에서 발견된 장애물)
-        if right_obstacles:
+        if right_obstacles and self._right_debug_counter % 10 == 0:
+            # 대표적인 몇 개만 출력
+            sample_obstacles = right_obstacles[:5] if len(right_obstacles) > 5 else right_obstacles
+            obstacle_str = ", ".join([f"{a:.0f}°@{d:.1f}m" for a, d in sample_obstacles])
             self.get_logger().info(
-                f"Right obstacles found: {len(right_obstacles)} points, "
-                f"First: {right_obstacles[0][0]:.1f}° @ {right_obstacles[0][1]:.2f}m"
+                f"✓ Obstacles detected: {len(right_obstacles)} points [{obstacle_str}]"
             )
 
         # StabilityDetector를 통한 안정적 감지
@@ -159,9 +172,9 @@ class ParkingObstacleDetector(Node):
         self.obstacle_publisher.publish(obstacle_bool_msg)
 
         if detection_result:
-            self.get_logger().info(f"Right obstacle detected (stable) - {len(right_obstacles)} points")
-        elif right_detected:
-            self.get_logger().debug(f"Right obstacle detected but not stable yet")
+            self.get_logger().warn(f"🚗 PARKING TRIGGER! Obstacle count: {len(right_obstacles)}")
+        elif right_detected and self._right_debug_counter % 5 == 0:
+            self.get_logger().info(f"Obstacle found, waiting for stability ({len(right_obstacles)} pts)")
 
     def detect_rear_obstacle_angles(self, valid_indices, ranges, angle_min, angle_increment):
         """
