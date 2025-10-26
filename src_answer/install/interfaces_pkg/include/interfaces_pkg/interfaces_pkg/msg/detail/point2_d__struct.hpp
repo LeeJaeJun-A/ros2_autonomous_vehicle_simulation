@@ -1,1 +1,0 @@
-/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_generator_cpp/interfaces_pkg/msg/detail/point2_d__struct.hpp

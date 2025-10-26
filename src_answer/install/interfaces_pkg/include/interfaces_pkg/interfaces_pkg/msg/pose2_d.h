@@ -1,1 +1,0 @@
-/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_generator_c/interfaces_pkg/msg/pose2_d.h
