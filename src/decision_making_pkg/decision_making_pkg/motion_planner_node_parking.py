@@ -105,17 +105,14 @@ class ParkingMotionPlanner(Node):
         )
 
         # ===== 센서 데이터 변수 =====
-        # LiDAR 관련
+        # LiDAR 관련 (후진 시 조향용)
         self.lidar_data = None
-        self.right_obstacle_detected = False
         self.received_start_angles = []
         self.received_end_angles = []
-        self.rear_wall_distance = float('inf')  # 후방 벽까지의 거리 (m)
 
-        # Camera 관련
+        # Camera 관련 (미세 조정용)
         self.lane_info = None
         self.lateral_offset = 0.0  # 좌우 오프셋 (픽셀)
-        self.lane_end_detected = False  # 주차선 끝 감지 여부
 
         # ===== 제어 명령 변수 =====
         self.steering_command = 0.0
@@ -217,10 +214,9 @@ class ParkingMotionPlanner(Node):
         self.lidar_data = msg
 
     def obstacle_info_callback(self, msg: Bool):
-        """오른쪽 장애물 감지 정보 수신"""
-        self.right_obstacle_detected = msg.data
-        if msg.data:
-            self.get_logger().info(f"[STATE: {self.parking_state}] Right obstacle detected!")
+        """오른쪽 장애물 감지 정보 수신 (시간 기반 모드에서는 무시)"""
+        # 시간 기반 모드에서는 장애물 감지를 사용하지 않음
+        pass
 
     def start_angle_callback(self, msg: Float32):
         """후방 장애물 시작 각도 수신 (버퍼 크기 제한으로 노이즈 방지)"""
@@ -257,14 +253,14 @@ class ParkingMotionPlanner(Node):
         self.last_camera_update_time = self.get_clock().now().nanoseconds / 1e9
 
     def rear_distance_callback(self, msg: Float32):
-        """후방 벽까지의 거리 수신"""
-        self.rear_wall_distance = msg.data
-
+        """후방 벽까지의 거리 수신 (시간 기반 모드에서는 무시)"""
+        # 시간 기반 모드에서는 사용하지 않음
+        pass
+    
     def lane_end_callback(self, msg: Bool):
-        """주차선 끝 감지 수신"""
-        self.lane_end_detected = msg.data
-        if msg.data:
-            self.get_logger().info(f"[STATE: {self.parking_state}] 🛑 Parking lane END detected by camera!")
+        """주차선 끝 감지 수신 (시간 기반 모드에서는 무시)"""
+        # 시간 기반 모드에서는 사용하지 않음
+        pass
 
     # ==================== 메인 타이머 콜백 ====================
 
