@@ -74,7 +74,7 @@ CAMERA_STEERING_GAIN = 0.02      # Camera 오프셋 -> 조향 변환 게인
 REAR_WALL_SAFE_DISTANCE = 0.6    # 후방 벽 안전 거리 (m) - 이 거리보다 가까우면 멈춤
 
 #--------------- Parking Sequence Timing ---------------
-INITIAL_FORWARD_MIN_DURATION = 5.0   # 초기 직진 최소 시간 (장애물 감지 대기)
+INITIAL_FORWARD_MIN_DURATION = 2.0   # 초기 직진 최소 시간 (장애물 감지 대기)
 REVERSING_DURATION = 12.0            # 후진 지속 시간 (초)
 FINE_TUNING_DURATION = 3.0           # 미세 조정 시간 (초)
 PARKED_WAIT_DURATION = 3.0           # 주차 완료 후 대기 시간 (초)

@@ -29,11 +29,11 @@ PUB_END_ANGLE_TOPIC_NAME = 'obstacle_end_angle'  # 장애물 끝 각도 토픽
 PUB_REAR_DISTANCE_TOPIC_NAME = 'rear_wall_distance'  # 후방 벽 거리 토픽
 
 # 오른쪽 장애물 감지 파라미터 (측면 주차 차량 감지용)
-RIGHT_DETECTION_START_ANGLE = 60.0   # 오른쪽 감지 시작 각도 (우측면)
-RIGHT_DETECTION_END_ANGLE = 120.0    # 오른쪽 감지 끝 각도 (우측면)
+RIGHT_DETECTION_START_ANGLE = 85.0   # 오른쪽 감지 시작 각도 (정측면)
+RIGHT_DETECTION_END_ANGLE = 95.0     # 오른쪽 감지 끝 각도 (정측면)
 RIGHT_DETECTION_RANGE_MIN = 0.2      # 오른쪽 감지 최소 거리 (m) - 가까운 차량도 감지
-RIGHT_DETECTION_RANGE_MAX = 3.0      # 오른쪽 감지 최대 거리 (m) - 주차 차량 거리
-CONSECUTIVE_DETECTION_COUNT = 3      # 안정적 감지를 위한 연속 감지 횟수
+RIGHT_DETECTION_RANGE_MAX = 2.0      # 오른쪽 감지 최대 거리 (m) - 주차 차량 거리
+CONSECUTIVE_DETECTION_COUNT = 5      # 안정적 감지를 위한 연속 감지 횟수
 
 # 후방 장애물 각도 감지 파라미터
 REAR_START_ANGLE = 0.0        # 후방 감지 시작 각도 (파라미터로 설정 가능)
@@ -159,8 +159,9 @@ class ParkingObstacleDetector(Node):
                 RIGHT_DETECTION_RANGE_MIN <= distance <= RIGHT_DETECTION_RANGE_MAX):
                 right_obstacles.append((angle_deg, distance))
 
-        # 장애물 포인트 개수로 판단 (10개 이상 100개 이하면 주차된 차량으로 간주)
-        if 10 <= len(right_obstacles) <= 65:
+        # 장애물 포인트 개수로 판단 (5개 이상이면 주차된 차량으로 간주)
+        # 85~95도의 좁은 범위이므로 포인트 개수가 적을 수 있음
+        if len(right_obstacles) >= 5:
             right_detected = True
 
         # 디버깅 로그 (오른쪽 영역에서 발견된 장애물)
