@@ -51,7 +51,6 @@ REVERSE_SPEED = -80             # 후진 속도
 STOP_SPEED = 0                  # 정지 속도
 
 #--------------- Turning Parameters ---------------
-LEFT_TURN_DURATION = 4.4        # 좌회전 지속 시간 (초)
 TURN_STEERING = -9              # 좌회전 조향 값
 TURN_SPEED = 200                # 회전 속도
 RIGHT_TURN_STEERING = 9         # 우회전 조향 값
@@ -70,14 +69,17 @@ STEERING_ANGLE_THRESHOLD_LOW = 177.0   # 이 값보다 작으면 좌회전
 LATERAL_OFFSET_THRESHOLD = 20.0  # 좌우 오프셋 임계값 (픽셀)
 CAMERA_STEERING_GAIN = 0.02      # Camera 오프셋 -> 조향 변환 게인
 
-#--------------- Safety Parameters ---------------
-REAR_WALL_SAFE_DISTANCE = 0.6    # 후방 벽 안전 거리 (m) - 이 거리보다 가까우면 멈춤
+#--------------- Safety Parameters (시간 기반 모드에서는 미사용) ---------------
+# REAR_WALL_SAFE_DISTANCE = 0.6    # 후방 벽 안전 거리 (m) - 시간 기반 모드에서는 미사용
 
-#--------------- Parking Sequence Timing ---------------
-INITIAL_FORWARD_MIN_DURATION = 3.0   # 초기 직진 최소 시간 (장애물 감지 대기)
-PARKING_START_TIME = 6.0             # 주차 시작 시간 (초) - 이 시간 후 무조건 주차 시작
-REVERSING_DURATION = 12.0            # 후진 지속 시간 (초)
-FINE_TUNING_DURATION = 3.0           # 미세 조정 시간 (초)
+#--------------- Parking Sequence Timing (시간 기반 주차) ---------------
+# 💡 주차 위치를 맞추려면 아래 시간들을 조정하세요!
+
+INITIAL_FORWARD_MIN_DURATION = 3.0   # 초기 직진 최소 시간 (무시됨, PARKING_START_TIME 사용)
+PARKING_START_TIME = 6.0             # ⏰ 주차 시작 시간 (초) - 이 시간 후 좌회전 시작
+LEFT_TURN_DURATION = 4.4             # 좌회전 지속 시간 (초)
+REVERSING_DURATION = 10.0            # ⏱️ 후진 지속 시간 (초) - 주차 깊이 조절 (길게하면 깊게 들어감)
+FINE_TUNING_DURATION = 2.0           # 미세 조정 시간 (초) - 후진 추가 미세 조정
 PARKED_WAIT_DURATION = 3.0           # 주차 완료 후 대기 시간 (초)
 
 #--------------- Exit Sequence Parameters ---------------
@@ -202,10 +204,11 @@ class ParkingMotionPlanner(Node):
 
         # ===== 타이머 설정 =====
         self.timer = self.create_timer(self.timer_period, self.timer_callback)
-        self.initial_forward_start_time = self.get_clock().now().nanoseconds / 1e9
+        # initial_forward_start_time은 state_initial_forward에서 첫 호출 시 설정됨
 
-        self.get_logger().info('Parking Motion Planner Node initialized')
+        self.get_logger().info('Parking Motion Planner Node initialized (TIME-BASED MODE)')
         self.get_logger().info(f'Initial state: {self.parking_state}')
+        self.get_logger().info(f'Parking will start after {PARKING_START_TIME}s of forward driving')
 
     # ==================== 콜백 함수들 ====================
 
@@ -352,28 +355,9 @@ class ParkingMotionPlanner(Node):
         상태 3: 후진 및 조향
         - LiDAR 후방 장애물 각도를 기반으로 조향
         - 주차 공간 중앙으로 정렬
-        - 후방 벽 거리 체크로 안전 정지
+        - 고정 시간 후 미세 조정으로 전환
         """
         elapsed = now - self.reversing_start_time
-
-        # 1순위: Camera 주차선 끝 감지
-        if self.lane_end_detected:
-            self.get_logger().warn(
-                f"🅿️  Parking lane END detected! Switching to fine tuning for final adjustment."
-            )
-            self.parking_state = 'fine_tuning'
-            self.fine_tuning_start_time = now
-            return
-
-        # 2순위: 안전 거리 체크 - 후방 벽이 너무 가까우면 즉시 미세 조정으로 전환
-        if self.rear_wall_distance < REAR_WALL_SAFE_DISTANCE:
-            self.get_logger().warn(
-                f"⚠️  Rear wall too close! Distance: {self.rear_wall_distance:.2f}m "
-                f"< Safe: {REAR_WALL_SAFE_DISTANCE}m. Switching to fine tuning."
-            )
-            self.parking_state = 'fine_tuning'
-            self.fine_tuning_start_time = now
-            return
 
         self.left_speed_command = REVERSE_SPEED
         self.right_speed_command = REVERSE_SPEED
@@ -424,34 +408,9 @@ class ParkingMotionPlanner(Node):
         - 차선 lateral offset을 사용하여 정확한 위치 조정
         - Camera 타임아웃 시 LiDAR 데이터로 폴백
         - 천천히 후진하며 조향
-        - 후방 벽 안전 거리 체크
+        - 고정 시간 후 주차 완료
         """
         elapsed = now - self.fine_tuning_start_time
-
-        # 1순위: Camera 주차선 끝 감지 - 정확한 위치에 도달
-        if self.lane_end_detected:
-            self.get_logger().warn(
-                f"🅿️  Parking lane END reached! Perfect parking position. Parking completed!"
-            )
-            self.parking_state = 'parked'
-            self.parked_start_time = now
-            self.steering_command = 0.0
-            self.left_speed_command = STOP_SPEED
-            self.right_speed_command = STOP_SPEED
-            return
-
-        # 2순위: 안전 거리 체크 - 최소 안전 거리에 도달하면 즉시 주차 완료
-        if self.rear_wall_distance < REAR_WALL_SAFE_DISTANCE:
-            self.get_logger().warn(
-                f"🅿️  Reached safe distance! Distance: {self.rear_wall_distance:.2f}m. "
-                f"Parking completed!"
-            )
-            self.parking_state = 'parked'
-            self.parked_start_time = now
-            self.steering_command = 0.0
-            self.left_speed_command = STOP_SPEED
-            self.right_speed_command = STOP_SPEED
-            return
 
         # Camera 데이터 유효성 확인 (타임아웃 체크)
         camera_available = True
