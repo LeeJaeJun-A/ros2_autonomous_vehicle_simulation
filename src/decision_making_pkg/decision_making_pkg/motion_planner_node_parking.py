@@ -75,6 +75,7 @@ REAR_WALL_SAFE_DISTANCE = 0.6    # 후방 벽 안전 거리 (m) - 이 거리보�
 
 #--------------- Parking Sequence Timing ---------------
 INITIAL_FORWARD_MIN_DURATION = 3.0   # 초기 직진 최소 시간 (장애물 감지 대기)
+PARKING_START_TIME = 6.0             # 주차 시작 시간 (초) - 이 시간 후 무조건 주차 시작
 REVERSING_DURATION = 12.0            # 후진 지속 시간 (초)
 FINE_TUNING_DURATION = 3.0           # 미세 조정 시간 (초)
 PARKED_WAIT_DURATION = 3.0           # 주차 완료 후 대기 시간 (초)
@@ -304,29 +305,25 @@ class ParkingMotionPlanner(Node):
         self.left_speed_command = FORWARD_SPEED_INIT
         self.right_speed_command = FORWARD_SPEED_INIT
 
-        # 초기 대기 시간 이후 장애물 감지 반응
+        # 초기 대기 시간 이후 주차 시작
         elapsed = now - self.initial_forward_start_time
 
         # 주기적 상태 로그 (2초마다)
         if int(elapsed) % 2 == 0 and elapsed - int(elapsed) < 0.1:
+            remaining = PARKING_START_TIME - elapsed
             self.get_logger().info(
                 f"[initial_forward] Elapsed: {elapsed:.1f}s, "
-                f"Right obstacle: {self.right_obstacle_detected}"
+                f"Parking starts in: {remaining:.1f}s"
             )
 
-        # 최소 직진 시간 경과 후에만 장애물 감지 반응
-        if elapsed >= INITIAL_FORWARD_MIN_DURATION:
-            if self.right_obstacle_detected:
-                self.get_logger().warn(f"✓ Right obstacle detected after {elapsed:.1f}s! Starting left turn.")
-                self.parking_state = 'turning_left'
-                self.left_turn_start_time = now
-                # 각도 수집 초기화
-                self.received_start_angles = []
-                self.received_end_angles = []
-        else:
-            # 최소 시간 이전에는 장애물 감지 무시
-            if self.right_obstacle_detected:
-                self.get_logger().debug(f"Ignoring early detection (elapsed={elapsed:.1f}s < {INITIAL_FORWARD_MIN_DURATION}s)")
+        # 특정 시간 후 무조건 주차 시작 (시간 기반)
+        if elapsed >= PARKING_START_TIME:
+            self.get_logger().warn(f"⏰ Time-based parking trigger at {elapsed:.1f}s! Starting left turn.")
+            self.parking_state = 'turning_left'
+            self.left_turn_start_time = now
+            # 각도 수집 초기화
+            self.received_start_angles = []
+            self.received_end_angles = []
 
     def state_turning_left(self, now):
         """
