@@ -98,6 +98,10 @@ class ParkingObstacleDetector(Node):
             consec_count=CONSECUTIVE_DETECTION_COUNT
         )
 
+        # 주차 공간 감지용 (장애물이 사라졌다가 다시 나타나는 패턴)
+        self.obstacle_detected_history = []  # 최근 감지 이력
+        self.found_parking_space = False  # 주차 공간 발견 여부
+
         self.get_logger().info('Parking Obstacle Detector Node initialized')
 
     def lidar_callback(self, msg: LaserScan):
@@ -159,18 +163,41 @@ class ParkingObstacleDetector(Node):
                 RIGHT_DETECTION_RANGE_MIN <= distance <= RIGHT_DETECTION_RANGE_MAX):
                 right_obstacles.append((angle_deg, distance))
 
-        # 장애물 포인트 개수로 판단 (3개 이상이면 주차된 차량으로 간주)
-        # 88~92도의 좁은 범위이므로 포인트 개수가 적음
-        if len(right_obstacles) >= 3:
-            right_detected = True
+        # 장애물 포인트 개수로 판단 (3개 이상이면 차량 감지)
+        obstacle_present = len(right_obstacles) >= 3
 
-        # 디버깅 로그 (오른쪽 영역에서 발견된 장애물)
+        # 감지 이력 저장 (최근 20개만 유지)
+        self.obstacle_detected_history.append(obstacle_present)
+        if len(self.obstacle_detected_history) > 20:
+            self.obstacle_detected_history.pop(0)
+
+        # 주차 공간 패턴 감지: 장애물 → 사라짐 → 다시 나타남
+        if len(self.obstacle_detected_history) >= 15:
+            recent_15 = self.obstacle_detected_history[-15:]
+            # 앞 5개: 장애물 있음, 중간 5개: 없음, 뒤 5개: 다시 있음
+            first_part = sum(recent_15[0:5]) >= 3  # 처음 5개 중 3개 이상 감지
+            middle_part = sum(recent_15[5:10]) <= 2  # 중간 5개 중 2개 이하 감지 (공간!)
+            last_part = sum(recent_15[10:15]) >= 3  # 마지막 5개 중 3개 이상 감지
+
+            if first_part and middle_part and last_part and not self.found_parking_space:
+                self.found_parking_space = True
+                self.get_logger().warn("🅿️  Parking space pattern detected! (Car → Gap → Car)")
+                right_detected = True
+            elif self.found_parking_space:
+                # 한 번 발견하면 계속 True 유지 (일정 시간 동안)
+                right_detected = True
+            else:
+                right_detected = False
+        else:
+            right_detected = False
+
+        # 디버깅 로그
         if right_obstacles and self._right_debug_counter % 10 == 0:
-            # 대표적인 몇 개만 출력
             sample_obstacles = right_obstacles[:5] if len(right_obstacles) > 5 else right_obstacles
             obstacle_str = ", ".join([f"{a:.0f}°@{d:.1f}m" for a, d in sample_obstacles])
+            pattern_str = ''.join(['■' if x else '□' for x in self.obstacle_detected_history[-10:]])
             self.get_logger().info(
-                f"✓ Obstacles detected: {len(right_obstacles)} points [{obstacle_str}]"
+                f"Obstacles: {len(right_obstacles)} pts [{obstacle_str}] Pattern: {pattern_str}"
             )
 
         # StabilityDetector를 통한 안정적 감지
@@ -181,10 +208,10 @@ class ParkingObstacleDetector(Node):
         obstacle_bool_msg.data = detection_result
         self.obstacle_publisher.publish(obstacle_bool_msg)
 
-        if detection_result:
-            self.get_logger().warn(f"🚗 PARKING TRIGGER! Obstacle count: {len(right_obstacles)}")
+        if detection_result and self.found_parking_space:
+            self.get_logger().warn(f"🚗 PARKING TRIGGER! Found parking space!")
         elif right_detected and self._right_debug_counter % 5 == 0:
-            self.get_logger().info(f"Obstacle found, waiting for stability ({len(right_obstacles)} pts)")
+            self.get_logger().info(f"Parking space pattern developing...")
 
     def detect_rear_obstacle_angles(self, valid_indices, ranges, angle_min, angle_increment):
         """
