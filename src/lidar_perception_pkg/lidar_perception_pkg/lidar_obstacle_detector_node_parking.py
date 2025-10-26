@@ -31,9 +31,9 @@ PUB_REAR_DISTANCE_TOPIC_NAME = 'rear_wall_distance'  # 후방 벽 거리 토픽
 # 오른쪽 장애물 감지 파라미터 (측면 주차 차량 감지용)
 RIGHT_DETECTION_START_ANGLE = 88.0   # 오른쪽 감지 시작 각도 (정측면)
 RIGHT_DETECTION_END_ANGLE = 92.0     # 오른쪽 감지 끝 각도 (정측면)
-RIGHT_DETECTION_RANGE_MIN = 0.25     # 오른쪽 감지 최소 거리 (m) - 너무 가까운 것 제외
-RIGHT_DETECTION_RANGE_MAX = 1.5      # 오른쪽 감지 최대 거리 (m) - 주차 차량 거리
-CONSECUTIVE_DETECTION_COUNT = 7      # 안정적 감지를 위한 연속 감지 횟수 (증가)
+RIGHT_DETECTION_RANGE_MIN = 0.4   # 오른쪽 감지 최소 거리 (m) - 바닥/차체 노이즈 제외
+RIGHT_DETECTION_RANGE_MAX = 1.2      # 오른쪽 감지 최대 거리 (m) - 주차 차량 측면만
+CONSECUTIVE_DETECTION_COUNT = 7      # 안정적 감지를 위한 연속 감지 횟수
 
 # 후방 장애물 각도 감지 파라미터
 REAR_START_ANGLE = 0.0        # 후방 감지 시작 각도 (파라미터로 설정 가능)
