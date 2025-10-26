@@ -77,10 +77,10 @@ FINE_TUNING_STEERING_GAIN = 0.01     # 미세 조정 시 조향 게인 (살짝�
 #--------------- Parking Sequence Timing (시간 기반 주차) ---------------
 # 💡 주차 위치를 맞추려면 아래 시간들을 조정하세요!
 
-PARKING_START_TIME = 29.0            # ⏰ 주차 시작 시간 (초) - 직진 후 이 시간에 좌회전 시작 (4배 연장)
+PARKING_START_TIME = 25.0            # ⏰ 주차 시작 시간 (초) - 직진 후 이 시간에 좌회전 시작 (4배 연장)
 LEFT_TURN_DURATION = 5.0           # 좌회전 지속 시간 (초)
-REVERSING_DURATION = 10.0             # ⏱️ 후진 지속 시간 (초) - 주차 깊이 조절 (줄여서 덜 깊게)
-FINE_TUNING_DURATION = 7.0           # 미세 조정 시간 (초) - 후진하며 반대 방향 조향으로 각도 보정
+REVERSING_DURATION = 8.0             # ⏱️ 후진 지속 시간 (초) - 주차 깊이 조절 (줄여서 덜 깊게)
+FINE_TUNING_DURATION = 5.0           # 미세 조정 시간 (초) - 후진하며 반대 방향 조향으로 각도 보정
 
 # 주차 완료 후 정지 유지 (탈출 로직 제거)
 #----------------------------------------------
@@ -465,7 +465,7 @@ class ParkingMotionPlanner(Node):
                         self.steering_command = -0.3  # 반대: 살짝 좌회전
                     else:  # steering_angle_deg < 178.0
                         self.steering_command = 0.3   # 반대: 살짝 우회전
-                    
+
                     self.get_logger().info(
                         f"Fine tuning (LiDAR, slight reverse): median={steering_angle_deg:.2f}°, "
                         f"steering={self.steering_command:.2f}"
