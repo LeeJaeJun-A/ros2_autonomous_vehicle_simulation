@@ -1,1 +1,0 @@
-/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_typesupport_introspection_cpp/interfaces_pkg/msg/detail/pose2_d__rosidl_typesupport_introspection_cpp.hpp

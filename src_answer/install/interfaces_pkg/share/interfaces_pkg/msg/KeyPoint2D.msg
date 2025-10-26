@@ -1,1 +1,0 @@
-/home/luke/automobile_capstone/src/interfaces_pkg/msg/KeyPoint2D.msg

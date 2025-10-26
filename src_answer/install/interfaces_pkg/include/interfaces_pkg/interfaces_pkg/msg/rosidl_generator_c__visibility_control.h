@@ -1,1 +1,0 @@
-/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_generator_c/interfaces_pkg/msg/rosidl_generator_c__visibility_control.h

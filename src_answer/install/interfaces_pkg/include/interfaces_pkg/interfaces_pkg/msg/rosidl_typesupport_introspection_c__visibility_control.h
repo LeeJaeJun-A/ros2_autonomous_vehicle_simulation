@@ -1,1 +1,0 @@
-/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_typesupport_introspection_c/interfaces_pkg/msg/rosidl_typesupport_introspection_c__visibility_control.h

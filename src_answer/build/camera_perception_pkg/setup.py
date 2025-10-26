@@ -1,1 +1,0 @@
-/home/luke/automobile_capstone/src/camera_perception_pkg/setup.py

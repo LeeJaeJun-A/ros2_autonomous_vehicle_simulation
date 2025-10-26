@@ -1,1 +1,0 @@
-/home/luke/automobile_capstone/src/interfaces_pkg/msg/Point2D.msg

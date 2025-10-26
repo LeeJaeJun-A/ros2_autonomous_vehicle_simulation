@@ -1,1 +1,0 @@
-/home/luke/automobile_capstone/src/build/interfaces_pkg/rosidl_generator_py/interfaces_pkg/msg/_path_planning_result_s.c
