@@ -106,6 +106,20 @@ class ParkingObstacleDetector(Node):
             self.get_logger().debug("No valid LiDAR range data received.")
             return
 
+        # 디버깅: 주요 방향의 장애물 거리 확인 (주기적으로)
+        if not hasattr(self, '_debug_counter'):
+            self._debug_counter = 0
+        self._debug_counter += 1
+
+        if self._debug_counter % 20 == 0:  # 2초마다 (10Hz * 20)
+            angles_to_check = [0, 90, 180, 270]
+            debug_info = []
+            for check_angle in angles_to_check:
+                idx = int((np.radians(check_angle) - angle_min) / angle_increment)
+                if 0 <= idx < len(ranges) and np.isfinite(ranges[idx]):
+                    debug_info.append(f"{check_angle}°:{ranges[idx]:.2f}m")
+            self.get_logger().info(f"LiDAR ranges - {', '.join(debug_info)}")
+
         # ===== 1. 오른쪽 장애물 감지 (Bool 메시지 발행) =====
         self.detect_right_obstacle(valid_indices, ranges, angle_min, angle_increment)
 
@@ -117,6 +131,7 @@ class ParkingObstacleDetector(Node):
         오른쪽 영역(230~300도)의 장애물을 감지하여 Bool 메시지로 발행
         """
         right_detected = False
+        right_obstacles = []  # 디버깅용
 
         for index in valid_indices:
             angle_deg = np.degrees(angle_min + index * angle_increment)
@@ -126,7 +141,14 @@ class ParkingObstacleDetector(Node):
             if (RIGHT_DETECTION_START_ANGLE <= angle_deg <= RIGHT_DETECTION_END_ANGLE and
                 RIGHT_DETECTION_RANGE_MIN <= distance <= RIGHT_DETECTION_RANGE_MAX):
                 right_detected = True
-                break
+                right_obstacles.append((angle_deg, distance))
+
+        # 디버깅 로그 (오른쪽 영역에서 발견된 장애물)
+        if right_obstacles:
+            self.get_logger().info(
+                f"Right obstacles found: {len(right_obstacles)} points, "
+                f"First: {right_obstacles[0][0]:.1f}° @ {right_obstacles[0][1]:.2f}m"
+            )
 
         # StabilityDetector를 통한 안정적 감지
         detection_result = self.detection_checker.check_consecutive_detections(right_detected)
@@ -137,7 +159,9 @@ class ParkingObstacleDetector(Node):
         self.obstacle_publisher.publish(obstacle_bool_msg)
 
         if detection_result:
-            self.get_logger().debug(f"Right obstacle detected (stable)")
+            self.get_logger().info(f"Right obstacle detected (stable) - {len(right_obstacles)} points")
+        elif right_detected:
+            self.get_logger().debug(f"Right obstacle detected but not stable yet")
 
     def detect_rear_obstacle_angles(self, valid_indices, ranges, angle_min, angle_increment):
         """

@@ -192,6 +192,8 @@ class ParkingMotionPlanner(Node):
     def obstacle_info_callback(self, msg: Bool):
         """오른쪽 장애물 감지 정보 수신"""
         self.right_obstacle_detected = msg.data
+        if msg.data:
+            self.get_logger().info(f"[STATE: {self.parking_state}] Right obstacle detected!")
 
     def start_angle_callback(self, msg: Float32):
         """후방 장애물 시작 각도 수신 (버퍼 크기 제한으로 노이즈 방지)"""
@@ -271,6 +273,14 @@ class ParkingMotionPlanner(Node):
 
         # 초기 대기 시간 이후 장애물 감지 반응
         elapsed = now - self.initial_forward_start_time
+
+        # 주기적 상태 로그 (1초마다)
+        if int(elapsed) % 2 == 0 and elapsed - int(elapsed) < 0.1:
+            self.get_logger().info(
+                f"[initial_forward] Elapsed: {elapsed:.1f}s, "
+                f"Right obstacle: {self.right_obstacle_detected}"
+            )
+
         if elapsed >= INITIAL_FORWARD_MIN_DURATION:
             if self.right_obstacle_detected:
                 self.get_logger().info("Right obstacle detected! Starting left turn.")
