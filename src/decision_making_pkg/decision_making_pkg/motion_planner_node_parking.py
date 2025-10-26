@@ -256,7 +256,7 @@ class ParkingMotionPlanner(Node):
         """후방 벽까지의 거리 수신 (시간 기반 모드에서는 무시)"""
         # 시간 기반 모드에서는 사용하지 않음
         pass
-    
+
     def lane_end_callback(self, msg: Bool):
         """주차선 끝 감지 수신 (시간 기반 모드에서는 무시)"""
         # 시간 기반 모드에서는 사용하지 않음
