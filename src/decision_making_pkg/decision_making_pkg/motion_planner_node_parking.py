@@ -68,6 +68,8 @@ STEERING_ANGLE_THRESHOLD_LOW = 177.0   # 이 값보다 작으면 좌회전
 #--------------- Camera-based Fine Tuning Parameters ---------------
 LATERAL_OFFSET_THRESHOLD = 20.0  # 좌우 오프셋 임계값 (픽셀)
 CAMERA_STEERING_GAIN = 0.02      # Camera 오프셋 -> 조향 변환 게인
+FINE_TUNING_OFFSET_THRESHOLD = 50.0  # 미세 조정 시 오프셋 임계값 (크면 조향, 작으면 직진)
+FINE_TUNING_STEERING_GAIN = 0.01     # 미세 조정 시 조향 게인 (살짝만)
 
 #--------------- Safety Parameters (시간 기반 모드에서는 미사용) ---------------
 # REAR_WALL_SAFE_DISTANCE = 0.6    # 후방 벽 안전 거리 (m) - 시간 기반 모드에서는 미사용
@@ -427,45 +429,51 @@ class ParkingMotionPlanner(Node):
         self.left_speed_command = REVERSE_SPEED / 2
         self.right_speed_command = REVERSE_SPEED / 2
 
-        # === Camera 기반 조향 (우선순위 1) - 반대 방향 적용 ===
+        # === Camera 기반 조향 (우선순위 1) - 반대 방향 살짝만 ===
         if camera_available:
-            if abs(self.lateral_offset) > LATERAL_OFFSET_THRESHOLD:
-                # 오프셋이 큰 경우 조향 (반대 방향)
-                steering_adjustment = -self.lateral_offset * CAMERA_STEERING_GAIN  # 부호 반대
-                # 조향 제한 (-1.0 ~ 1.0)
-                self.steering_command = np.clip(steering_adjustment, -1.0, 1.0)
+            if abs(self.lateral_offset) > FINE_TUNING_OFFSET_THRESHOLD:
+                # 오프셋이 큰 경우에만 살짝 조향 (반대 방향)
+                steering_adjustment = -self.lateral_offset * FINE_TUNING_STEERING_GAIN  # 부호 반대, 작은 게인
+                # 조향 제한 (-0.5 ~ 0.5) - 약하게
+                self.steering_command = np.clip(steering_adjustment, -0.5, 0.5)
                 self.get_logger().info(
-                    f"Fine tuning (Camera, reversed): offset={self.lateral_offset:.1f}px, "
+                    f"Fine tuning (Camera, slight reverse): offset={self.lateral_offset:.1f}px, "
                     f"steering={self.steering_command:.2f}"
                 )
             else:
-                # 오프셋이 작으면 직진 (중앙 정렬 완료)
+                # 오프셋이 작으면 가운데로 두고 직진 후진
                 self.steering_command = 0.0
-                self.get_logger().info("Fine tuning (Camera): centered")
+                self.get_logger().info("Fine tuning (Camera): centered, straight reverse")
 
-        # === LiDAR 폴백 조향 (Camera 실패 시) - 반대 방향 적용 ===
+        # === LiDAR 폴백 조향 (Camera 실패 시) - 반대 방향 살짝만 ===
         else:
             if len(self.received_start_angles) >= 2 and len(self.received_end_angles) >= 2:
                 median_end_angle = np.median(self.received_end_angles)
                 median_start_angle = np.median(self.received_start_angles)
                 steering_angle_deg = (median_end_angle + median_start_angle) / 2.0
 
-                # fine_tuning에서는 약한 조향 + 반대 방향
-                if steering_angle_deg > STEERING_ANGLE_THRESHOLD_HIGH:
-                    self.steering_command = -0.5  # 반대: 좌회전
-                elif steering_angle_deg < STEERING_ANGLE_THRESHOLD_LOW:
-                    self.steering_command = 0.5   # 반대: 우회전
-                else:
+                # 중앙 범위 확대 (178~182도는 직진)
+                if 178.0 <= steering_angle_deg <= 182.0:
+                    # 거의 정면이면 가운데로 두고 직진 후진
                     self.steering_command = 0.0
-
-                self.get_logger().info(
-                    f"Fine tuning (LiDAR fallback, reversed): median={steering_angle_deg:.2f}°, "
-                    f"steering={self.steering_command:.2f}"
-                )
+                    self.get_logger().info(
+                        f"Fine tuning (LiDAR): centered at {steering_angle_deg:.2f}°, straight reverse"
+                    )
+                else:
+                    # 각도 차이가 크면 살짝만 반대 조향
+                    if steering_angle_deg > 182.0:
+                        self.steering_command = -0.3  # 반대: 살짝 좌회전
+                    else:  # steering_angle_deg < 178.0
+                        self.steering_command = 0.3   # 반대: 살짝 우회전
+                    
+                    self.get_logger().info(
+                        f"Fine tuning (LiDAR, slight reverse): median={steering_angle_deg:.2f}°, "
+                        f"steering={self.steering_command:.2f}"
+                    )
             else:
-                # 각도 데이터도 없으면 직진
+                # 각도 데이터도 없으면 가운데로 두고 직진 후진
                 self.steering_command = 0.0
-                self.get_logger().warn("Fine tuning: No sensor data, going straight")
+                self.get_logger().warn("Fine tuning: No sensor data, straight reverse")
 
         # 미세 조정 완료 후 주차 완료 상태로 전환
         if elapsed >= FINE_TUNING_DURATION:
